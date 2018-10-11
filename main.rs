@@ -38,27 +38,30 @@ fn write_tag(s: String, f: File) -> File {
     let write_str = format!("<{}>", s);
     let result = write(write_str.clone(), &f);
     if result.is_ok() {
-        return f;
+        f
+    } else {
+        println!("ERROR while writing tag: {}. Continuing writing to dump file...", write_str);
+        File::create(ERR_DUMP_FILE_NAME).unwrap()
     }
-    println!("ERROR while writing tag: {}. Continuing writing to dump file...", write_str);
-    return File::create(ERR_DUMP_FILE_NAME).unwrap();
 }
 
 fn write_end_tag(s: String, f:File) -> File {
     let write_str = format!("</{}>", s);
     let result = write(write_str.clone(), &f);
     if result.is_ok() {
-        return f;
+        f
+    } else {
+        println!("ERROR while writing end tag: {}. Continuing writing to dump file...", write_str);
+        File::create(ERR_DUMP_FILE_NAME).unwrap()
     }
-    println!("ERROR while writing end tag: {}. Continuing writing to dump file...", write_str);
-    return File::create(ERR_DUMP_FILE_NAME).unwrap();
 }
 
 fn write_text(s: String, f: File) -> File {
     let result = write(s.clone(), &f);
     if result.is_ok() {
-        return f;
+        f
+    } else {
+        println!("ERROR while writing text: {}. Continuing writing to dump file...", s);
+        File::create(ERR_DUMP_FILE_NAME).unwrap()
     }
-    println!("ERROR while writing text: {}. Continuing writing to dump file...", s);
-    return File::create(ERR_DUMP_FILE_NAME).unwrap();
 }
