@@ -1,7 +1,10 @@
-use std::fs::File;
+extern crate serde_json;
+
+use serde_json::{Value, Error};
 use std::fs;
+use std::fs::File;
 use std::io::prelude::*;
-use std::io::Error;
+use std::io::Read;
 
 static INDEX_FILE_NAME: &'static str = "index.html";
 static ERR_DUMP_FILE_NAME: &'static str = "dump";
@@ -23,6 +26,7 @@ fn main() {
 
     for path in src_paths {
         println!("Read webpage source file: {}", path.unwrap().path().display())
+        
     }
 
 
@@ -42,7 +46,7 @@ fn main() {
 
 }
 
-fn write(s: String, mut f: &File) -> Result<(), Error>  {
+fn write(s: String, mut f: &File) -> Result<(), std::io::Error>  {
     // {} -> write to_string trait
     // {:?} -> write debug trait, much more common
     // Ok(_) -> "throw away" the value
