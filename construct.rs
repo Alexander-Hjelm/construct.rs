@@ -1,6 +1,10 @@
+extern crate serde;
 extern crate serde_json;
 
-use serde_json::{Value, Error};
+#[macro_use]
+extern crate serde_derive;
+
+//use serde_json::{Value, Error};
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -10,6 +14,7 @@ static INDEX_FILE_NAME: &'static str = "index.html";
 static ERR_DUMP_FILE_NAME: &'static str = "dump";
 static WEB_SRC_PATH: &'static str = "./web_src/";
 
+#[derive(Deserialize)]
 struct Box {
     coord_x: u8,
     coord_y: u8
@@ -35,8 +40,9 @@ fn main() {
         let mut src_file = File::open(path_str).unwrap();
         let mut file_contents = String::new();
         src_file.read_to_string(&mut file_contents).unwrap();
-        println!("GOT HERE");
         println!("Read file contents: {}", &file_contents);
+        let b: Box = serde_json::from_str(file_contents.as_str()).unwrap();
+        println!("Read Box: x: {}, y: {}", b.coord_x, b.coord_y);
     }
 
 
