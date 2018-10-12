@@ -1,13 +1,33 @@
 use std::fs::File;
+use std::fs;
 use std::io::prelude::*;
 use std::io::Error;
 
 static INDEX_FILE_NAME: &'static str = "index.html";
 static ERR_DUMP_FILE_NAME: &'static str = "dump";
-
+static WEB_SRC_PATH: &'static str = "./web_src/";
 
 fn main() {
     
+    //Read all files in the src path
+    let src_paths_result = fs::read_dir(WEB_SRC_PATH);
+    let src_paths: std::fs::ReadDir;
+
+    if src_paths_result.is_err() {
+        fs::create_dir(WEB_SRC_PATH).unwrap();
+        src_paths = fs::read_dir(WEB_SRC_PATH).unwrap();
+        println!("The path {} was not found, created the path!", WEB_SRC_PATH)
+    } else {
+        src_paths = src_paths_result.unwrap();
+    }
+
+    for path in src_paths {
+        println!("Read webpage source file: {}", path.unwrap().path().display())
+    }
+
+
+
+
     let mut file = File::create(INDEX_FILE_NAME).unwrap();
 
     file = write_tag(format!("!DOCTYPE html"), file);
