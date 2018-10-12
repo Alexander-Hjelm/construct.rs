@@ -10,6 +10,11 @@ static INDEX_FILE_NAME: &'static str = "index.html";
 static ERR_DUMP_FILE_NAME: &'static str = "dump";
 static WEB_SRC_PATH: &'static str = "./web_src/";
 
+struct Box {
+    coord_x: u8,
+    coord_y: u8
+}
+
 fn main() {
     
     //Read all files in the src path
@@ -25,8 +30,13 @@ fn main() {
     }
 
     for path in src_paths {
-        println!("Read webpage source file: {}", path.unwrap().path().display())
-        
+        let path_str: String = path.unwrap().path().display().to_string();
+        println!("Read webpage source file: {}", path_str);
+        let mut src_file = File::open(path_str).unwrap();
+        let mut file_contents = String::new();
+        src_file.read_to_string(&mut file_contents).unwrap();
+        println!("GOT HERE");
+        println!("Read file contents: {}", &file_contents);
     }
 
 
