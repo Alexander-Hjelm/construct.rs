@@ -41,7 +41,10 @@ fn main() {
         let mut file_contents = String::new();
         src_file.read_to_string(&mut file_contents).unwrap();
         println!("Read file contents: {}", &file_contents);
+
+        // TODO: use to_writer instead: https://docs.serde.rs/serde_json/fn.to_writer.html
         let b: Box = serde_json::from_str(file_contents.as_str()).unwrap();
+
         println!("Read Box: x: {}, y: {}", b.coord_x, b.coord_y);
     }
 
