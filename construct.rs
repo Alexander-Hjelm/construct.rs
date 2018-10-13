@@ -15,9 +15,44 @@ static ERR_DUMP_FILE_NAME: &'static str = "dump";
 static WEB_SRC_PATH: &'static str = "./web_src/";
 
 #[derive(Deserialize)]
-struct Box {
+struct Block{
+    _id: String,
+    template_id: String,
     coord_x: u8,
-    coord_y: u8
+    coord_y: u8,
+    width_percent: u8,
+    stylesheet_override: String,
+    
+    string_maps: Vec<StringMap>,
+    
+    blocks: Vec<Block>,
+}
+
+#[derive(Deserialize)]
+struct Stylesheet{
+    _id: String,
+    path: String,
+    html: String
+}
+
+#[derive(Deserialize)]
+struct Template{
+    _id: String,
+    _stylesheet_id: String,
+    path: String,
+    html: String,
+    string_refs: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct StringMap{
+    _id: String,
+    contents: String,
+}
+
+#[derive(Deserialize)]
+struct StringCollection{
+    strings: Vec<StringMap>,
 }
 
 fn main() {
@@ -43,7 +78,7 @@ fn main() {
         println!("Read file contents: {}", &file_contents);
 
         // TODO: use to_writer instead: https://docs.serde.rs/serde_json/fn.to_writer.html
-        let b: Box = serde_json::from_str(file_contents.as_str()).unwrap();
+        let b: Block = serde_json::from_str(file_contents.as_str()).unwrap();
 
         println!("Read Box: x: {}, y: {}", b.coord_x, b.coord_y);
     }
