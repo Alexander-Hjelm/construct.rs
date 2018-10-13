@@ -6,9 +6,12 @@ extern crate serde_derive;
 
 //use serde_json::{Value, Error};
 use std::fs;
+use std::str;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::Read;
+use std::io::BufReader;
+use std::io::BufRead;
 
 static INDEX_FILE_NAME: &'static str = "index.html";
 static ERR_DUMP_FILE_NAME: &'static str = "dump";
@@ -73,14 +76,44 @@ fn main() {
         let path_str: String = path.unwrap().path().display().to_string();
         println!("Read webpage source file: {}", path_str);
         let mut src_file = File::open(path_str).unwrap();
-        let mut file_contents = String::new();
-        src_file.read_to_string(&mut file_contents).unwrap();
-        println!("Read file contents: {}", &file_contents);
+        let mut file_reader = BufReader::new(src_file);
+        
+        while (true) {
+            let mut buf = [0];
+            let read_bytes = file_reader.read(&mut buf).unwrap();
+
+            if read_bytes == 0 {
+                break;
+            }
+
+            let c = char::from(buf[0]);
+            
+            // Control tag
+            if c == '#' {
+                file_reader.read(&mut buf).unwrap();
+                let mut tag_buf: Vec<u8> = Vec::new();
+                file_reader.read_until(']' as u8, &mut tag_buf);
+                let l = tag_buf.len();
+                tag_buf.truncate(l-1);      // Cut trailing ] on the tag
+                let tag = String::from_utf8(tag_buf).unwrap();
+                println!("Read tag: {}", tag);
+            }
+            
+        }
+        
+        //let mut file_contents = String::new();
+
+        
+        
+        
+        
+        //src_file.read_to_string(&mut file_contents).unwrap();
+        //println!("Read file contents: {}", &file_contents);
 
         // TODO: use to_writer instead: https://docs.serde.rs/serde_json/fn.to_writer.html
-        let b: Block = serde_json::from_str(file_contents.as_str()).unwrap();
+        //let b: Block = serde_json::from_str(file_contents.as_str()).unwrap();
 
-        println!("Read Box: x: {}, y: {}", b.coord_x, b.coord_y);
+        //println!("Read Box: x: {}, y: {}", b.coord_x, b.coord_y);
     }
 
 
