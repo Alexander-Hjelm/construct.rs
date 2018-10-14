@@ -78,27 +78,14 @@ fn main() {
         let mut src_file = File::open(path_str).unwrap();
         let mut file_reader = BufReader::new(src_file);
         
-        while (true) {
-            let mut buf = [0];
-            let read_bytes = file_reader.read(&mut buf).unwrap();
-
-            if read_bytes == 0 {
+        loop {
+            let res = read_control_tag(&mut file_reader);
+            if res.is_ok() {
+                let tag = res.unwrap();
+                println!("Read tag: {}", tag);
+            } else {
                 break;
             }
-
-            let c = char::from(buf[0]);
-            
-            // Control tag
-            if c == '#' {
-                file_reader.read(&mut buf).unwrap();
-                let mut tag_buf: Vec<u8> = Vec::new();
-                file_reader.read_until(']' as u8, &mut tag_buf);
-                let l = tag_buf.len();
-                tag_buf.truncate(l-1);      // Cut trailing ] on the tag
-                let tag = String::from_utf8(tag_buf).unwrap();
-                println!("Read tag: {}", tag);
-            }
-            
         }
         
         //let mut file_contents = String::new();
@@ -133,7 +120,38 @@ fn main() {
 
 }
 
-fn write(s: String, mut f: &File) -> Result<(), std::io::Error>  {
+fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Error> {
+    let mut buf = [0];
+    let reader_res = reader.read(&mut buf);
+    let read_bytes: usize;
+    if reader_res.is_ok() {
+        read_bytes = reader_res.unwrap();
+    } else {
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("File reader reached EOF befmre finding a control tag: {}", reader_res.unwrap_err())));
+    }
+
+    if read_bytes == 0 {
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "File reader reached EOR before finding a control tag"));
+    }
+    
+    let c = char::from(buf[0]);
+ 
+    // Control tag
+    if c == '#' {
+        reader.read(&mut buf).unwrap();
+        let mut tag_buf: Vec<u8> = Vec::new();
+        reader.read_until(']' as u8, &mut tag_buf).unwrap();
+        let l = tag_buf.len();
+        tag_buf.truncate(l-1);      // Cut trailing ] on the tag
+        let tag = String::from_utf8(tag_buf).unwrap();
+        return Ok(tag);
+    }
+    
+    Err(std::io::Error::new(std::io::ErrorKind::Other, "Expected control tag was not found"))
+
+}
+
+fn write(s: String, mut f: &File) -> Result<(), std::io::Error> {
     // {} -> write to_string trait
     // {:?} -> write debug trait, much more common
     // Ok(_) -> "throw away" the value
