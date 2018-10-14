@@ -1,5 +1,21 @@
 #[BLOCK]
 {
-  "coord_x" : 1,
-  "coord_y" : 0
+  "_id": "main_block",
+  "template_id": "test_html_template",
+  "coord_x": 1,
+  "coord_y": 0,
+  "width_percent": 100,
+  "stylesheet_override": "",
+  "string_maps": [
+    {
+      "_id": "main_block_title",
+      "contents": "Fucking Bigotry"
+    },
+    {
+      "_id": "main_block_subtitle",
+      "contents": "I don't know what I am doing..."
+    }
+  ],
+
+  "blocks": [] 
 }

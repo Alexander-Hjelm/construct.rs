@@ -83,11 +83,24 @@ fn main() {
             if res.is_ok() {
                 let tag = res.unwrap();
                 println!("Read tag: {}", tag);
+                
+                let block: Block = serde_json::from_reader(file_reader).unwrap();
+                break;
+
+                // TODO: Write from BufReader to String while counting brackets.
+                // Then from String to JSON
+                // Example:
+                //   let mut s = String::new();
+                //   s.push_str("GET / HTTP/1.0\r\n");
+
+
             } else {
                 break;
             }
         }
         
+        
+
         //let mut file_contents = String::new();
 
         
