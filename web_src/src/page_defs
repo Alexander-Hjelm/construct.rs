@@ -19,3 +19,22 @@
 
   "blocks": [] 
 }
+
+#[TEMPLATE]
+{
+  "_id": "test_html_template",
+  "_stylesheet_id": "test_stylesheet",
+  "path": "web_src/template/index.html",
+  "html":"",
+  "default_string_maps": [
+    {
+      "_id": "main_block_title",
+      "contents": "This is a main title"
+    },
+    {
+      "_id": "main_block_subtitle",
+      "contents": "This is a subtitle"
+    }
+
+  ]
+}

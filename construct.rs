@@ -15,7 +15,7 @@ use std::io::BufRead;
 
 static INDEX_FILE_NAME: &'static str = "index.html";
 static ERR_DUMP_FILE_NAME: &'static str = "dump";
-static WEB_SRC_PATH: &'static str = "./web_src/";
+static WEB_SRC_PATH: &'static str = "./web_src/src/";
 
 #[derive(Deserialize)]
 struct Block{
@@ -44,7 +44,7 @@ struct Template{
     _stylesheet_id: String,
     path: String,
     html: String,
-    string_refs: Vec<String>,
+    default_string_maps: Vec<StringMap>,
 }
 
 #[derive(Deserialize)]
@@ -86,7 +86,14 @@ fn main() {
                 
                 if tag == "BLOCK" {
                     let block: Block = read_json_object(&mut file_reader).unwrap();
+                } else if tag == "TEMPLATE" {
+                    let template: Template = read_json_object(&mut file_reader).unwrap();
+                } else if tag == "STYLESHEET" {
+                    let stylesheet: Stylesheet = read_json_object(&mut file_reader).unwrap();
+                } else if tag == "STRING_COLLECTION" {
+                    let collection: StringCollection = read_json_object(&mut file_reader).unwrap();
                 }
+
             } else {
                 break;
             }
@@ -167,33 +174,33 @@ fn read_json_object<T>(reader: &mut BufReader<File>) -> Result<T, std::io::Error
 
 fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Error> {
     let mut buf = [0];
-    let reader_res = reader.read(&mut buf);
-    let read_bytes: usize;
-    if reader_res.is_ok() {
-        read_bytes = reader_res.unwrap();
-    } else {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("File reader reached EOF befmre finding a control tag: {}", reader_res.unwrap_err())));
+    loop {
+        let reader_res = reader.read(&mut buf);
+        let read_bytes: usize;
+        if reader_res.is_ok() {
+            read_bytes = reader_res.unwrap();
+        } else {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("File reader reached EOF befmre finding a control tag: {}", reader_res.unwrap_err())));
+        }
+
+        if read_bytes == 0 {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "File reader reached EOR before finding a control tag"));
+        }
+    
+        let c = char::from(buf[0]);
+        if c == '#' {
+            break;
+        }
     }
 
-    if read_bytes == 0 {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "File reader reached EOR before finding a control tag"));
-    }
-    
-    let c = char::from(buf[0]);
- 
     // Control tag
-    if c == '#' {
-        reader.read(&mut buf).unwrap();
-        let mut tag_buf: Vec<u8> = Vec::new();
-        reader.read_until(']' as u8, &mut tag_buf).unwrap();
-        let l = tag_buf.len();
-        tag_buf.truncate(l-1);      // Cut trailing ] on the tag
-        let tag = String::from_utf8(tag_buf).unwrap();
-        return Ok(tag);
-    }
-    
-    Err(std::io::Error::new(std::io::ErrorKind::Other, "Expected control tag was not found"))
-
+    reader.read(&mut buf).unwrap();       
+    let mut tag_buf: Vec<u8> = Vec::new();
+    reader.read_until(']' as u8, &mut tag_buf).unwrap();
+    let l = tag_buf.len();
+    tag_buf.truncate(l-1);      // Cut trailing ] on the tag
+    let tag = String::from_utf8(tag_buf).unwrap();
+    return Ok(tag);
 }
 
 fn write(s: String, mut f: &File) -> Result<(), std::io::Error> {
