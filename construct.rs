@@ -84,36 +84,13 @@ fn main() {
                 let tag = res.unwrap();
                 println!("Read tag: {}", tag);
                 
-                let block: Block = serde_json::from_reader(file_reader).unwrap();
-                break;
-
-                // TODO: Write from BufReader to String while counting brackets.
-                // Then from String to JSON
-                // Example:
-                //   let mut s = String::new();
-                //   s.push_str("GET / HTTP/1.0\r\n");
-
-
+                if tag == "BLOCK" {
+                    let block: Block = read_json_object(&mut file_reader).unwrap();
+                }
             } else {
                 break;
             }
         }
-        
-        
-
-        //let mut file_contents = String::new();
-
-        
-        
-        
-        
-        //src_file.read_to_string(&mut file_contents).unwrap();
-        //println!("Read file contents: {}", &file_contents);
-
-        // TODO: use to_writer instead: https://docs.serde.rs/serde_json/fn.to_writer.html
-        //let b: Block = serde_json::from_str(file_contents.as_str()).unwrap();
-
-        //println!("Read Box: x: {}, y: {}", b.coord_x, b.coord_y);
     }
 
 
@@ -131,6 +108,61 @@ fn main() {
     write_end_tag("html".to_owned(), file);
     println!("Finished writing to file!");
 
+}
+
+fn read_json_object<T>(reader: &mut BufReader<File>) -> Result<T, std::io::Error> where T: serde::de::DeserializeOwned {
+    let mut bracket_count = 0;
+    let mut buf = [0];
+
+    let mut out_str = String::new();
+
+    //Read until first bracket
+    loop {
+        let reader_res = reader.read(&mut buf);
+        if reader_res.is_ok() {
+            reader_res.unwrap();
+        } else {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "File reader reached EOF before finding a json object"));
+        }
+        let c = char::from(buf[0]);
+        if c == '{' {
+            bracket_count = 1;
+            out_str.push(c);
+            break;
+        }
+    }
+
+    loop {
+        let reader_res = reader.read(&mut buf);
+        if reader_res.is_ok() {
+            reader_res.unwrap();
+        } else {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "File reader reached EOF while reading a json object"));
+        }
+        let c = char::from(buf[0]);
+        if c == '{' {
+            bracket_count = bracket_count + 1;
+        } else if c == '}' {
+            bracket_count = bracket_count - 1;
+        }
+        out_str.push(c);
+
+        if bracket_count == 0 {
+            break;
+        }
+    }
+
+    let immutable_str = &out_str; //This is a &String type
+    let out_str_native: &str = &immutable_str; //This is an &str type
+
+    println!("{}", out_str_native);
+
+    // String to JSON
+    let res = serde_json::from_str(out_str_native);
+    match res {
+        Ok(_) => Ok(res.unwrap()),
+        Err(e) => Err(e.into())     // Convert serde_json::Error to io::Error
+    }
 }
 
 fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Error> {
