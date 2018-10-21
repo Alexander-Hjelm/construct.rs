@@ -9,7 +9,7 @@
   "string_maps": [
     {
       "_id": "main_block_title",
-      "contents": "Fucking Bigotry"
+      "contents": "Hello from construct.rs!"
     },
     {
       "_id": "main_block_subtitle",
@@ -17,7 +17,7 @@
     }
   ],
 
-  "blocks": [] 
+  "blocks": []
 }
 
 #[TEMPLATE]

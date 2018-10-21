@@ -122,7 +122,6 @@ fn main() {
                 //Write template to file
                 let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
 
-
                 if t.path != "" {
                     let mut template_file = File::open(&t.path).unwrap();
                     let mut buf = [0];
@@ -131,11 +130,46 @@ fn main() {
                     loop {
                         let res = template_file.read(&mut buf);
                         if res.is_ok() {
-                            let c = res.unwrap();
-                            if c == 0 {
+                            let read_bytes = res.unwrap();
+
+                            if read_bytes == 0 {
                                 break;
                             }
-                            out_file.write(&buf);
+
+                            let c = char::from(buf[0]);
+                            if c == '#' {
+                                let mut control_str = String::new();
+                                //read {
+                                template_file.read(&mut buf).unwrap();
+                                // read first char
+                                template_file.read(&mut buf).unwrap();
+
+                                // load first char
+                                let mut k = char::from(buf[0]);
+                                while k != '}' {
+                                    control_str.push(k);
+                                    template_file.read(&mut buf).unwrap();
+                                    k = char::from(buf[0]);
+                                }
+                                //read }
+                                template_file.read(&mut buf).unwrap();
+
+                                println!("Read control string: {}", control_str);
+
+                                //Find the corresponding string in the block's map
+                                for str_map in &(block.string_maps) {
+                                    //let contents = &str_map.contents;
+                                    //let sm = str_map.to_owned();
+                                    if str_map._id.eq(&control_str) {
+                                        //let sma = &str_map.to_owned().contents;
+                                        let smac = str_map.contents.clone();
+                                        let bytes = smac.into_bytes();
+                                        out_file.write_all(&bytes).unwrap();
+                                    }
+                                }
+                            }
+
+                            out_file.write(&buf).unwrap();
                         } else {
                             break;
                         }
@@ -245,7 +279,7 @@ fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Err
     let tag = String::from_utf8(tag_buf).unwrap();
     return Ok(tag);
 }
-
+/*
 fn write(s: String, mut f: &File) -> Result<(), std::io::Error> {
     // {} -> write to_string trait
     // {:?} -> write debug trait, much more common
@@ -289,3 +323,4 @@ fn write_text(s: String, f: File) -> File {
         File::create(ERR_DUMP_FILE_NAME).unwrap()
     }
 }
+*/
