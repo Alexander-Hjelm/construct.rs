@@ -16,6 +16,7 @@ use std::io::BufRead;
 static INDEX_FILE_NAME: &'static str = "index.html";
 static ERR_DUMP_FILE_NAME: &'static str = "dump";
 static WEB_SRC_PATH: &'static str = "./web_src/src/";
+static WEB_OUT_PATH: &'static str = "./web_out/";
 
 #[derive(Deserialize)]
 struct Block{
@@ -25,9 +26,9 @@ struct Block{
     coord_y: u8,
     width_percent: u8,
     stylesheet_override: String,
-    
+
     string_maps: Vec<StringMap>,
-    
+
     blocks: Vec<Block>,
 }
 
@@ -59,7 +60,7 @@ struct StringCollection{
 }
 
 fn main() {
-    
+
     //Read all files in the src path
     let src_paths_result = fs::read_dir(WEB_SRC_PATH);
     let src_paths: std::fs::ReadDir;
@@ -72,49 +73,90 @@ fn main() {
         src_paths = src_paths_result.unwrap();
     }
 
+    let mut blocks = Vec::new();
+    let mut templates = Vec::new();
+    let mut stylesheets = Vec::new();
+
     for path in src_paths {
         let path_str: String = path.unwrap().path().display().to_string();
         println!("Read webpage source file: {}", path_str);
         let mut src_file = File::open(path_str).unwrap();
         let mut file_reader = BufReader::new(src_file);
-        
+
         loop {
             let res = read_control_tag(&mut file_reader);
             if res.is_ok() {
                 let tag = res.unwrap();
                 println!("Read tag: {}", tag);
-                
+
                 if tag == "BLOCK" {
                     let block: Block = read_json_object(&mut file_reader).unwrap();
+                    blocks.push(block);
                 } else if tag == "TEMPLATE" {
                     let template: Template = read_json_object(&mut file_reader).unwrap();
+                    println!("{}", template.html);
+                    templates.push(template);
                 } else if tag == "STYLESHEET" {
                     let stylesheet: Stylesheet = read_json_object(&mut file_reader).unwrap();
-                } else if tag == "STRING_COLLECTION" {
-                    let collection: StringCollection = read_json_object(&mut file_reader).unwrap();
-                }
-
+                    stylesheets.push(stylesheet);
+                }// else if tag == "STRING_COLLECTION" {
+                //    let collection: StringCollection = read_json_object(&mut file_reader).unwrap();
+                //}
             } else {
                 break;
             }
         }
     }
 
+    // Now we have all the json objects we need (blocks, templates and stylesheets)
+
+    for block in blocks {
+        //Find corresponding template
+        let template_name = block.template_id;
+        for t in &templates {
+            if t._id.eq(&template_name) {
+                // Found template
+                //TODO: include handling if the template is a string
+                println!("{}", t.path);
+
+                //Write template to file
+                let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
 
 
+                if t.path != "" {
+                    let mut template_file = File::open(&t.path).unwrap();
+                    let mut buf = [0];
 
-    let mut file = File::create(INDEX_FILE_NAME).unwrap();
+                    //Write template to file
+                    loop {
+                        let res = template_file.read(&mut buf);
+                        if res.is_ok() {
+                            let c = res.unwrap();
+                            if c == 0 {
+                                break;
+                            }
+                            out_file.write(&buf);
+                        } else {
+                            break;
+                        }
 
-    file = write_tag(format!("!DOCTYPE html"), file);
+
+                    }
+                }
+
+            }
+        }
+
+    //    file = write_tag(format!("!DOCTYPE html"), file);
 
 
-    file = write_tag("html".to_owned(), file);
-    file = write_tag("body".to_owned(), file);
-    file = write_text("Fuck this, Imma just make porn instead ._.".to_owned(), file);
-    file = write_end_tag("body".to_owned(), file);
-    write_end_tag("html".to_owned(), file);
-    println!("Finished writing to file!");
-
+    //    file = write_tag("html".to_owned(), file);
+    //    file = write_tag("body".to_owned(), file);
+    //    file = write_text("Fuck this, Imma just make porn instead ._.".to_owned(), file);
+    //    file = write_end_tag("body".to_owned(), file);
+    //    write_end_tag("html".to_owned(), file);
+        println!("Finished writing to file!");
+    }
 }
 
 fn read_json_object<T>(reader: &mut BufReader<File>) -> Result<T, std::io::Error> where T: serde::de::DeserializeOwned {
@@ -157,6 +199,7 @@ fn read_json_object<T>(reader: &mut BufReader<File>) -> Result<T, std::io::Error
         if bracket_count == 0 {
             break;
         }
+
     }
 
     let immutable_str = &out_str; //This is a &String type
@@ -186,7 +229,7 @@ fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Err
         if read_bytes == 0 {
             return Err(std::io::Error::new(std::io::ErrorKind::Other, "File reader reached EOR before finding a control tag"));
         }
-    
+
         let c = char::from(buf[0]);
         if c == '#' {
             break;
@@ -194,7 +237,7 @@ fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Err
     }
 
     // Control tag
-    reader.read(&mut buf).unwrap();       
+    reader.read(&mut buf).unwrap();
     let mut tag_buf: Vec<u8> = Vec::new();
     reader.read_until(']' as u8, &mut tag_buf).unwrap();
     let l = tag_buf.len();
