@@ -111,75 +111,10 @@ fn main() {
     // Now we have all the json objects we need (blocks, templates and stylesheets)
 
     for block in blocks {
-        //Find corresponding template
-        let template_name = block.template_id;
-        for t in &templates {
-            if t._id.eq(&template_name) {
-                // Found template
-                //TODO: include handling if the template is a string
-                println!("{}", t.path);
-
-                //Write template to file
-                let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
-
-                if t.path != "" {
-                    let mut template_file = File::open(&t.path).unwrap();
-                    let mut buf = [0];
-
-                    //Write template to file
-                    loop {
-                        let res = template_file.read(&mut buf);
-                        if res.is_ok() {
-                            let read_bytes = res.unwrap();
-
-                            if read_bytes == 0 {
-                                break;
-                            }
-
-                            let c = char::from(buf[0]);
-                            if c == '#' {
-                                let mut control_str = String::new();
-                                //read {
-                                template_file.read(&mut buf).unwrap();
-                                // read first char
-                                template_file.read(&mut buf).unwrap();
-
-                                // load first char
-                                let mut k = char::from(buf[0]);
-                                while k != '}' {
-                                    control_str.push(k);
-                                    template_file.read(&mut buf).unwrap();
-                                    k = char::from(buf[0]);
-                                }
-                                //read }
-                                template_file.read(&mut buf).unwrap();
-
-                                println!("Read control string: {}", control_str);
-
-                                //Find the corresponding string in the block's map
-                                for str_map in &(block.string_maps) {
-                                    //let contents = &str_map.contents;
-                                    //let sm = str_map.to_owned();
-                                    if str_map._id.eq(&control_str) {
-                                        //let sma = &str_map.to_owned().contents;
-                                        let smac = str_map.contents.clone();
-                                        let bytes = smac.into_bytes();
-                                        out_file.write_all(&bytes).unwrap();
-                                    }
-                                }
-                            }
-
-                            out_file.write(&buf).unwrap();
-                        } else {
-                            break;
-                        }
-
-
-                    }
-                }
-
-            }
-        }
+        //Write template to file
+        let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
+        write_block(block, &templates, &mut out_file);
+    }
 
     //    file = write_tag(format!("!DOCTYPE html"), file);
 
@@ -190,6 +125,79 @@ fn main() {
     //    file = write_end_tag("body".to_owned(), file);
     //    write_end_tag("html".to_owned(), file);
         println!("Finished writing to file!");
+
+}
+
+fn write_block(block: Block, templates: &Vec<Template>, out_file: &mut File) {
+
+
+
+    //Find corresponding template
+    let template_name = block.template_id;
+    for t in templates {
+        if t._id.eq(&template_name) {
+            // Found template
+            //TODO: include handling if the template is a string
+            println!("{}", t.path);
+
+
+            if t.path != "" {
+                let mut template_file = File::open(&t.path).unwrap();
+                let mut buf = [0];
+
+                //Write template to file
+                loop {
+                    let res = template_file.read(&mut buf);
+                    if res.is_ok() {
+                        let read_bytes = res.unwrap();
+
+                        if read_bytes == 0 {
+                            break;
+                        }
+
+                        let c = char::from(buf[0]);
+                        if c == '#' {
+                            let mut control_str = String::new();
+                            //read {
+                            template_file.read(&mut buf).unwrap();
+                            // read first char
+                            template_file.read(&mut buf).unwrap();
+
+                            // load first char
+                            let mut k = char::from(buf[0]);
+                            while k != '}' {
+                                control_str.push(k);
+                                template_file.read(&mut buf).unwrap();
+                                k = char::from(buf[0]);
+                            }
+                            //read }
+                            template_file.read(&mut buf).unwrap();
+
+                            println!("Read control string: {}", control_str);
+
+                            //Find the corresponding string in the block's map
+                            for str_map in &(block.string_maps) {
+                                //let contents = &str_map.contents;
+                                //let sm = str_map.to_owned();
+                                if str_map._id.eq(&control_str) {
+                                    //let sma = &str_map.to_owned().contents;
+                                    let smac = str_map.contents.clone();
+                                    let bytes = smac.into_bytes();
+                                    out_file.write_all(&bytes).unwrap();
+                                }
+                            }
+                        }
+
+                        out_file.write(&buf).unwrap();
+                    } else {
+                        break;
+                    }
+
+
+                }
+            }
+
+        }
     }
 }
 
