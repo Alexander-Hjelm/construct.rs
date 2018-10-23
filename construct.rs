@@ -113,7 +113,11 @@ fn main() {
     for block in blocks {
         //Write template to file
         let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
+
+        out_file.write("<!DOCTYPE html><html><body>\n".as_bytes()).unwrap();
         write_block(block, &templates, &mut out_file);
+        out_file.write("</body></html>".as_bytes()).unwrap();
+
     }
 
     //    file = write_tag(format!("!DOCTYPE html"), file);
@@ -129,8 +133,6 @@ fn main() {
 }
 
 fn write_block(block: Block, templates: &Vec<Template>, out_file: &mut File) {
-
-
 
     //Find corresponding template
     let template_name = block.template_id;
@@ -198,6 +200,14 @@ fn write_block(block: Block, templates: &Vec<Template>, out_file: &mut File) {
             }
 
         }
+    }
+
+    //Write all sub blocks as new divs
+    for subblock in block.blocks
+    {
+        out_file.write("<div>\n".as_bytes()).unwrap();
+        write_block(subblock, templates, out_file);
+        out_file.write("</div>".as_bytes()).unwrap();
     }
 }
 

@@ -9,7 +9,7 @@
   "string_maps": [
     {
       "_id": "main_block_title",
-      "contents": "Hello from construct.rs!"
+      "contents": "Hello from construct.rs"
     },
     {
       "_id": "main_block_subtitle",
@@ -17,7 +17,28 @@
     }
   ],
 
-  "blocks": []
+  "blocks": [
+    {
+      "_id": "sub_block",
+      "template_id": "test_html_template",
+      "coord_x": 1,
+      "coord_y": 0,
+      "width_percent": 100,
+      "stylesheet_override": "",
+      "string_maps": [
+        {
+          "_id": "main_block_title",
+          "contents": "This is a sub block!"
+        },
+        {
+          "_id": "main_block_subtitle",
+          "contents": "Just look at it..."
+        }
+      ],
+
+      "blocks": []
+    }
+  ]
 }
 
 #[TEMPLATE]
