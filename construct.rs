@@ -13,8 +13,6 @@ use std::io::Read;
 use std::io::BufReader;
 use std::io::BufRead;
 
-static INDEX_FILE_NAME: &'static str = "index.html";
-static ERR_DUMP_FILE_NAME: &'static str = "dump";
 static WEB_SRC_PATH: &'static str = "./web_src/src/";
 static WEB_OUT_PATH: &'static str = "./web_out/";
 
@@ -52,11 +50,6 @@ struct Template{
 struct StringMap{
     _id: String,
     contents: String,
-}
-
-#[derive(Deserialize)]
-struct StringCollection{
-    strings: Vec<StringMap>,
 }
 
 fn main() {
@@ -99,9 +92,7 @@ fn main() {
                 } else if tag == "STYLESHEET" {
                     let stylesheet: Stylesheet = read_json_object(&mut file_reader).unwrap();
                     stylesheets.push(stylesheet);
-                }// else if tag == "STRING_COLLECTION" {
-                //    let collection: StringCollection = read_json_object(&mut file_reader).unwrap();
-                //}
+                }
             } else {
                 break;
             }
@@ -115,24 +106,14 @@ fn main() {
         let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
 
         out_file.write("<!DOCTYPE html><html><body>\n".as_bytes()).unwrap();
-        write_block(block, &templates, &mut out_file);
+        write_block(block, &templates, &stylesheets, &mut out_file);
         out_file.write("</body></html>".as_bytes()).unwrap();
-
     }
-
-    //    file = write_tag(format!("!DOCTYPE html"), file);
-
-
-    //    file = write_tag("html".to_owned(), file);
-    //    file = write_tag("body".to_owned(), file);
-    //    file = write_text("Fuck this, Imma just make porn instead ._.".to_owned(), file);
-    //    file = write_end_tag("body".to_owned(), file);
-    //    write_end_tag("html".to_owned(), file);
-        println!("Finished writing to file!");
+    println!("Finished writing to file!");
 
 }
 
-fn write_block(block: Block, templates: &Vec<Template>, out_file: &mut File) {
+fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Stylesheet>, out_file: &mut File) {
 
     //Find corresponding template
     let template_name = block.template_id;
@@ -179,10 +160,7 @@ fn write_block(block: Block, templates: &Vec<Template>, out_file: &mut File) {
 
                             //Find the corresponding string in the block's map
                             for str_map in &(block.string_maps) {
-                                //let contents = &str_map.contents;
-                                //let sm = str_map.to_owned();
                                 if str_map._id.eq(&control_str) {
-                                    //let sma = &str_map.to_owned().contents;
                                     let smac = str_map.contents.clone();
                                     let bytes = smac.into_bytes();
                                     out_file.write_all(&bytes).unwrap();
@@ -194,11 +172,27 @@ fn write_block(block: Block, templates: &Vec<Template>, out_file: &mut File) {
                     } else {
                         break;
                     }
+                }
 
+                let stylesheet_id;
+                if block.stylesheet_override != "" {
+                    stylesheet_id = &block.stylesheet_override;
+                } else {
+                    stylesheet_id = &t._stylesheet_id;
+                }
 
+                for stylesheet in stylesheets {
+                    if &stylesheet._id == stylesheet_id {
+                        // Found stylesheet
+                        let stylesheet_path = &stylesheet.path;
+                        let mut stylesheet_src_file = File::open(format!("{}{}.html", WEB_SRC_PATH, stylesheet_path)).unwrap();
+                        let mut stylesheet_out_file = File::create(format!("{}{}.html", WEB_OUT_PATH, stylesheet_path)).unwrap();
+                        //TODO: Copy the stylesheet file
+
+                        break;
+                    }
                 }
             }
-
         }
     }
 
@@ -206,7 +200,7 @@ fn write_block(block: Block, templates: &Vec<Template>, out_file: &mut File) {
     for subblock in block.blocks
     {
         out_file.write("<div>\n".as_bytes()).unwrap();
-        write_block(subblock, templates, out_file);
+        write_block(subblock, templates, stylesheets, out_file);
         out_file.write("</div>".as_bytes()).unwrap();
     }
 }
@@ -297,48 +291,3 @@ fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Err
     let tag = String::from_utf8(tag_buf).unwrap();
     return Ok(tag);
 }
-/*
-fn write(s: String, mut f: &File) -> Result<(), std::io::Error> {
-    // {} -> write to_string trait
-    // {:?} -> write debug trait, much more common
-    // Ok(_) -> "throw away" the value
-    // let result = match...   <- must be used
-    match f.write_all(&s.into_bytes()) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e)
-    }
-
-}
-
-fn write_tag(s: String, f: File) -> File {
-    let write_str = format!("<{}>", s);
-    let result = write(write_str.clone(), &f);
-    if result.is_ok() {
-        f
-    } else {
-        println!("ERROR while writing tag: {}. Continuing writing to dump file...", write_str);
-        File::create(ERR_DUMP_FILE_NAME).unwrap()
-    }
-}
-
-fn write_end_tag(s: String, f:File) -> File {
-    let write_str = format!("</{}>", s);
-    let result = write(write_str.clone(), &f);
-    if result.is_ok() {
-        f
-    } else {
-        println!("ERROR while writing end tag: {}. Continuing writing to dump file...", write_str);
-        File::create(ERR_DUMP_FILE_NAME).unwrap()
-    }
-}
-
-fn write_text(s: String, f: File) -> File {
-    let result = write(s.clone(), &f);
-    if result.is_ok() {
-        f
-    } else {
-        println!("ERROR while writing text: {}. Continuing writing to dump file...", s);
-        File::create(ERR_DUMP_FILE_NAME).unwrap()
-    }
-}
-*/
