@@ -19,7 +19,7 @@
     {
       "_id": "sub_block_1",
       "template_id": "test_html_template",
-      "width_percent": 100,
+      "width_percent": 30,
       "stylesheet_override": "test_stylesheet_override",
       "string_maps": [
         {
@@ -38,7 +38,7 @@
     {
       "_id": "sub_block_2",
       "template_id": "test_html_template",
-      "width_percent": 100,
+      "width_percent": 70,
       "stylesheet_override": "test_stylesheet_override",
       "string_maps": [
         {
@@ -61,7 +61,6 @@
   "_id": "test_html_template",
   "_stylesheet_id": "test_stylesheet",
   "path": "web_src/template/index.html",
-  "html":"",
   "default_string_maps": [
     {
       "_id": "main_block_title",
@@ -78,13 +77,11 @@
 #[STYLESHEET]
 {
   "_id": "test_stylesheet",
-  "html": "",
   "path": "web_src/styles/test_stylesheet.css"
 }
 
 #[STYLESHEET]
 {
   "_id": "test_stylesheet_override",
-  "html": "",
   "path": "web_src/styles/test_stylesheet_override.css"
 }

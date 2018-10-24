@@ -32,7 +32,6 @@ struct Block{
 struct Stylesheet{
     _id: String,
     path: String,
-    html: String
 }
 
 #[derive(Deserialize)]
@@ -40,8 +39,6 @@ struct Template{
     _id: String,
     _stylesheet_id: String,
     path: String,
-    html: String,
-    default_string_maps: Vec<StringMap>,
 }
 
 #[derive(Deserialize)]
@@ -85,7 +82,6 @@ fn main() {
                     blocks.push(block);
                 } else if tag == "TEMPLATE" {
                     let template: Template = read_json_object(&mut file_reader).unwrap();
-                    println!("{}", template.html);
                     templates.push(template);
                 } else if tag == "STYLESHEET" {
                     let stylesheet: Stylesheet = read_json_object(&mut file_reader).unwrap();
