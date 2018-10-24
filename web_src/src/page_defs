@@ -24,7 +24,7 @@
       "coord_x": 1,
       "coord_y": 0,
       "width_percent": 100,
-      "stylesheet_override": "",
+      "stylesheet_override": "test_stylesheet_override",
       "string_maps": [
         {
           "_id": "main_block_title",
@@ -58,4 +58,18 @@
     }
 
   ]
+}
+
+#[STYLESHEET]
+{
+  "_id": "test_stylesheet",
+  "html": "",
+  "path": "web_src/styles/test_stylesheet.css"
+}
+
+#[STYLESHEET]
+{
+  "_id": "test_stylesheet_override",
+  "html": "",
+  "path": "web_src/styles/test_stylesheet_override.css"
 }

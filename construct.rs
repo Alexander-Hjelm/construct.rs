@@ -103,20 +103,47 @@ fn main() {
 
     for block in blocks {
         //Write template to file
-        let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
-
-        out_file.write("<!DOCTYPE html><html><body>\n".as_bytes()).unwrap();
-        write_block(block, &templates, &stylesheets, &mut out_file);
-        out_file.write("</body></html>".as_bytes()).unwrap();
+        write_block(block, &templates, &stylesheets);
     }
     println!("Finished writing to file!");
 
 }
 
-fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Stylesheet>, out_file: &mut File) {
+fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Stylesheet>) {
+
+    let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
+    let template_name = block.template_id;
+
+    out_file.write("<!DOCTYPE html>\n<html>\n  <head>\n".as_bytes()).unwrap();
+
+    for t in templates {
+        if t._id.eq(&template_name) {
+
+            let stylesheet_id;
+            if block.stylesheet_override != "" {
+                stylesheet_id = &block.stylesheet_override;
+            } else {
+                stylesheet_id = &t._stylesheet_id;
+            }
+
+            for stylesheet in stylesheets {
+                if &stylesheet._id == stylesheet_id {
+                    // Found stylesheet
+                    let stylesheet_path = &stylesheet.path;
+                    print!("Found stylesheet: {}", stylesheet_path);
+
+                    // Copy stylesheet
+                    fs::copy(stylesheet_path, format!("{}{}.css", WEB_OUT_PATH, stylesheet._id)).unwrap();
+
+                    // Write reference to the stylesheet in head
+                    out_file.write(format!("{}{}{}", "<link rel=\"stylesheet\" href=\"", stylesheet_id ,".css\" />").as_bytes()).unwrap();
+                }
+            }
+        }
+    }
+    out_file.write("  </head>\n  <body>\n".as_bytes()).unwrap();
 
     //Find corresponding template
-    let template_name = block.template_id;
     for t in templates {
         if t._id.eq(&template_name) {
             // Found template
@@ -173,36 +200,20 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
                         break;
                     }
                 }
-
-                let stylesheet_id;
-                if block.stylesheet_override != "" {
-                    stylesheet_id = &block.stylesheet_override;
-                } else {
-                    stylesheet_id = &t._stylesheet_id;
-                }
-
-                for stylesheet in stylesheets {
-                    if &stylesheet._id == stylesheet_id {
-                        // Found stylesheet
-                        let stylesheet_path = &stylesheet.path;
-                        let mut stylesheet_src_file = File::open(format!("{}{}.html", WEB_SRC_PATH, stylesheet_path)).unwrap();
-                        let mut stylesheet_out_file = File::create(format!("{}{}.html", WEB_OUT_PATH, stylesheet_path)).unwrap();
-                        //TODO: Copy the stylesheet file
-
-                        break;
-                    }
-                }
             }
         }
     }
 
-    //Write all sub blocks as new divs
+    //Write all sub blocks as new IFRAMEs
     for subblock in block.blocks
     {
-        out_file.write("<div>\n".as_bytes()).unwrap();
-        write_block(subblock, templates, stylesheets, out_file);
-        out_file.write("</div>".as_bytes()).unwrap();
+        out_file.write(format!("<div id=\"{}\">\n", subblock._id).as_bytes()).unwrap();
+        out_file.write(format!("<iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
+        out_file.write(format!("</div>\n").as_bytes()).unwrap();
+        write_block(subblock, templates, stylesheets);
     }
+
+    out_file.write("  </body>\n</html>\n".as_bytes()).unwrap();
 }
 
 fn read_json_object<T>(reader: &mut BufReader<File>) -> Result<T, std::io::Error> where T: serde::de::DeserializeOwned {
