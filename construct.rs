@@ -221,7 +221,7 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
     //Write all sub blocks as new IFRAMEs
     for subblock in block.blocks
     {
-        out_file.write(format!("<div id=\"{}\" style=\"display: table-cell;\">\n", subblock._id).as_bytes()).unwrap();
+        out_file.write(format!("<div id=\"{}\" style=\"display: table-cell; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
         out_file.write(format!("<iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
         out_file.write(format!("</div>\n").as_bytes()).unwrap();
         write_block(subblock, templates, stylesheets);
