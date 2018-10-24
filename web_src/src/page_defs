@@ -20,15 +20,15 @@
       "_id": "sub_block_1",
       "template_id": "test_html_template",
       "width_percent": 30,
-      "stylesheet_override": "test_stylesheet_override",
+      "stylesheet_override": "test_stylesheet_override_1",
       "string_maps": [
         {
           "_id": "main_block_title",
-          "contents": "This is a sub block!"
+          "contents": "This is my sub block #1!"
         },
         {
           "_id": "main_block_subtitle",
-          "contents": "Just look at it..."
+          "contents": "Hey paizanos!"
         }
       ],
 
@@ -39,15 +39,15 @@
       "_id": "sub_block_2",
       "template_id": "test_html_template",
       "width_percent": 70,
-      "stylesheet_override": "test_stylesheet_override",
+      "stylesheet_override": "test_stylesheet_override_2",
       "string_maps": [
         {
           "_id": "main_block_title",
-          "contents": "This is a sub block!"
+          "contents": "This is my sub block #2!"
         },
         {
           "_id": "main_block_subtitle",
-          "contents": "Just look at it..."
+          "contents": "Fuggin' green Mario..."
         }
       ],
 
@@ -82,6 +82,12 @@
 
 #[STYLESHEET]
 {
-  "_id": "test_stylesheet_override",
-  "path": "web_src/styles/test_stylesheet_override.css"
+  "_id": "test_stylesheet_override_1",
+  "path": "web_src/styles/test_stylesheet_override_1.css"
+}
+
+#[STYLESHEET]
+{
+  "_id": "test_stylesheet_override_2",
+  "path": "web_src/styles/test_stylesheet_override_2.css"
 }

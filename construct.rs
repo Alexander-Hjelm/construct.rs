@@ -22,9 +22,7 @@ struct Block{
     template_id: String,
     width_percent: u8,
     stylesheet_override: String,
-
     string_maps: Vec<StringMap>,
-
     blocks: Vec<Block>,
 }
 
@@ -145,12 +143,12 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
                     fs::copy(stylesheet_path, format!("{}{}.css", WEB_OUT_PATH, stylesheet._id)).unwrap();
 
                     // Write reference to the stylesheet in head
-                    out_file.write(format!("{}{}{}", "<link rel=\"stylesheet\" href=\"", stylesheet_id ,".css\" />").as_bytes()).unwrap();
+                    out_file.write(format!("      {}{}{}", "<link rel=\"stylesheet\" href=\"", stylesheet_id ,".css\" />").as_bytes()).unwrap();
                 }
             }
         }
     }
-    out_file.write("  </head>\n  <body>\n".as_bytes()).unwrap();
+    out_file.write("\n  </head>\n  <body>\n".as_bytes()).unwrap();
 
     //Find corresponding template
     for t in templates {
@@ -213,22 +211,22 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
         }
     }
 
-    out_file.write("<div style=\"width: 100%; display: table;\">\n".as_bytes()).unwrap();
-    out_file.write("<div style=\"display: table-row\">\n".as_bytes()).unwrap();
+    out_file.write("    <div style=\"width: 100%; display: table;\">\n".as_bytes()).unwrap();
+    out_file.write("      <div style=\"display: table-row\">\n".as_bytes()).unwrap();
 
 
 
     //Write all sub blocks as new IFRAMEs
     for subblock in block.blocks
     {
-        out_file.write(format!("<div id=\"{}\" style=\"display: table-cell; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
-        out_file.write(format!("<iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
-        out_file.write(format!("</div>\n").as_bytes()).unwrap();
+        out_file.write(format!("        <div id=\"{}\" style=\"display: table-cell; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
+        out_file.write(format!("          <iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
+        out_file.write(format!("        </div>\n").as_bytes()).unwrap();
         write_block(subblock, templates, stylesheets);
     }
 
-    out_file.write(format!("</div>\n").as_bytes()).unwrap();
-    out_file.write(format!("</div>\n").as_bytes()).unwrap();
+    out_file.write(format!("      </div>\n").as_bytes()).unwrap();
+    out_file.write(format!("    </div>\n").as_bytes()).unwrap();
     out_file.write("  </body>\n</html>\n".as_bytes()).unwrap();
 }
 
