@@ -60,7 +60,7 @@
 {
   "_id": "test_html_template",
   "_stylesheet_id": "test_stylesheet",
-  "path": "web_src/template/index.html",
+  "path": "template/index.html",
   "default_string_maps": [
     {
       "_id": "main_block_title",
@@ -77,17 +77,17 @@
 #[STYLESHEET]
 {
   "_id": "test_stylesheet",
-  "path": "web_src/styles/test_stylesheet.css"
+  "path": "styles/test_stylesheet.css"
 }
 
 #[STYLESHEET]
 {
   "_id": "test_stylesheet_override_1",
-  "path": "web_src/styles/test_stylesheet_override_1.css"
+  "path": "styles/test_stylesheet_override_1.css"
 }
 
 #[STYLESHEET]
 {
   "_id": "test_stylesheet_override_2",
-  "path": "web_src/styles/test_stylesheet_override_2.css"
+  "path": "styles/test_stylesheet_override_2.css"
 }

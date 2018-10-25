@@ -12,9 +12,10 @@ use std::io::prelude::*;
 use std::io::Read;
 use std::io::BufReader;
 use std::io::BufRead;
+use std::env;
 
-static WEB_SRC_PATH: &'static str = "./web_src/src/";
-static WEB_OUT_PATH: &'static str = "./web_out/";
+//static WEB_SRC_PATH: &'static str = "./web_src/src/";
+//static WEB_OUT_PATH: &'static str = "./web_out/";
 
 #[derive(Deserialize)]
 struct Block{
@@ -47,14 +48,52 @@ struct StringMap{
 
 fn main() {
 
+    let mut web_src_path = String::new();
+    let mut web_out_path = String::new();
+
+    let mut c = 0;
+
+    if env::args().len() < 3 {
+        show_help();
+        return;
+    }
+
+    for arg in env::args() {
+        println!("{}", arg);
+        if arg == "-h" || arg == "--help" {
+            show_help();
+            return;
+        }
+        if c==1 {
+            web_src_path = arg.clone();
+        }
+        if c==2 {
+            web_out_path = arg;
+        }
+
+        c+=1;
+    }
+
+    // Add trailing / to dirs
+    let c = web_src_path.chars().next_back().unwrap();
+    if c != '/' {
+        web_src_path = format!("{}{}", web_src_path, '/');
+    }
+
+    let c = web_out_path.chars().next_back().unwrap();
+    if c != '/' {
+        web_out_path = format!("{}{}", web_out_path, '/');
+    }
+
+
     //Read all files in the src path
-    let src_paths_result = fs::read_dir(WEB_SRC_PATH);
+    let src_paths_result = fs::read_dir(web_src_path.clone());
     let src_paths: std::fs::ReadDir;
 
     if src_paths_result.is_err() {
-        fs::create_dir(WEB_SRC_PATH).unwrap();
-        src_paths = fs::read_dir(WEB_SRC_PATH).unwrap();
-        println!("The path {} was not found, created the path!", WEB_SRC_PATH)
+        fs::create_dir(web_src_path.clone()).unwrap();
+        src_paths = fs::read_dir(web_src_path.clone()).unwrap();
+        println!("The path {} was not found, created the path!", web_src_path)
     } else {
         src_paths = src_paths_result.unwrap();
     }
@@ -93,12 +132,22 @@ fn main() {
 
     // Now we have all the json objects we need (blocks, templates and stylesheets)
 
+    // Create dir
+    let res = fs::create_dir(web_out_path.clone());
+    if res.is_err() {println!("Out path already exists. Continuing happily...")}
+
     for block in blocks {
         //Write template to file
-        write_block(block, &templates, &stylesheets);
+        write_block(block, &templates, &stylesheets, &web_src_path, &web_out_path);
     }
     println!("Finished writing to file!");
 
+}
+
+fn show_help() {
+    println!("Usage:\n  construct <src-path> <out-path>\n\nWhere:\n  <src-path> is the directory
+    that contains the JSON website definitions, stylesheets and html template files.\n  <out-path>
+    is the directory that construct shall write your website html files to.")
 }
 
 fn find_deep_block_index(ref_id: String, blocks: &Vec<Block>) -> Result<usize, std::io::Error> {
@@ -116,9 +165,9 @@ fn find_deep_block_index(ref_id: String, blocks: &Vec<Block>) -> Result<usize, s
     return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Could not find block by reference with id: {}", ref_id)));
 }
 
-fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Stylesheet>) {
+fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Stylesheet>, web_src_path: &String, web_out_path: &String) {
+    let mut out_file = File::create(web_out_path.to_owned() + &block._id + ".html").unwrap();
 
-    let mut out_file = File::create(WEB_OUT_PATH.to_owned() + &block._id + ".html").unwrap();
     let template_name = block.template_id;
 
     out_file.write("<!DOCTYPE html>\n<html>\n  <head>\n".as_bytes()).unwrap();
@@ -134,13 +183,15 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
             }
 
             for stylesheet in stylesheets {
+
                 if &stylesheet._id == stylesheet_id {
                     // Found stylesheet
-                    let stylesheet_path = &stylesheet.path;
-                    print!("Found stylesheet: {}", stylesheet_path);
+                    let stylesheet_src_path = format!("{}{}", web_src_path, &stylesheet.path);
+                    let stylesheet_out_path = format!("{}{}.css", web_out_path, &stylesheet._id);
 
+                    println!("Found stylesheet: {}", stylesheet_src_path);
                     // Copy stylesheet
-                    fs::copy(stylesheet_path, format!("{}{}.css", WEB_OUT_PATH, stylesheet._id)).unwrap();
+                    fs::copy(stylesheet_src_path, stylesheet_out_path).unwrap();
 
                     // Write reference to the stylesheet in head
                     out_file.write(format!("      {}{}{}", "<link rel=\"stylesheet\" href=\"", stylesheet_id ,".css\" />").as_bytes()).unwrap();
@@ -148,6 +199,7 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
             }
         }
     }
+
     out_file.write("\n  </head>\n  <body>\n".as_bytes()).unwrap();
 
     //Find corresponding template
@@ -155,11 +207,12 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
         if t._id.eq(&template_name) {
             // Found template
             //TODO: include handling if the template is a string
-            println!("{}", t.path);
 
+            let template_path = format!("{}{}", web_src_path, t.path);
+            print!("Found html template: {}", template_path);
 
-            if t.path != "" {
-                let mut template_file = File::open(&t.path).unwrap();
+            if template_path != "" {
+                let mut template_file = File::open(&template_path).unwrap();
                 let mut buf = [0];
 
                 //Write template to file
@@ -223,7 +276,7 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
             out_file.write(format!("        <div id=\"{}\" style=\"display: table-cell; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
             out_file.write(format!("          <iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
             out_file.write(format!("        </div>\n").as_bytes()).unwrap();
-            write_block(subblock, templates, stylesheets);
+            write_block(subblock, templates, stylesheets, web_src_path, web_out_path);
         }
 
         out_file.write(format!("      </div>\n").as_bytes()).unwrap();
