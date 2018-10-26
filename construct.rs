@@ -24,7 +24,7 @@ struct Block{
     width_percent: u8,
     stylesheet_override: String,
     string_maps: Vec<StringMap>,
-    blocks: Vec<Block>,
+    blocks: Vec<Vec<Block>>,
 }
 
 #[derive(Deserialize)]
@@ -150,21 +150,6 @@ fn show_help() {
     is the directory that construct shall write your website html files to.")
 }
 
-fn find_deep_block_index(ref_id: String, blocks: &Vec<Block>) -> Result<usize, std::io::Error> {
-    let index_res = blocks.iter().position(|r| r._id == ref_id);
-    if index_res.is_some() {
-        return Ok(index_res.unwrap());
-    }
-
-    for block in blocks {
-        let find_res = find_deep_block_index(ref_id.clone(), &block.blocks);
-        if find_res.is_ok() {
-            return Ok(find_res.unwrap());
-        }
-    }
-    return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Could not find block by reference with id: {}", ref_id)));
-}
-
 fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Stylesheet>, web_src_path: &String, web_out_path: &String) {
     let mut out_file = File::create(web_out_path.to_owned() + &block._id + ".html").unwrap();
 
@@ -209,7 +194,7 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
             //TODO: include handling if the template is a string
 
             let template_path = format!("{}{}", web_src_path, t.path);
-            print!("Found html template: {}", template_path);
+            println!("Found html template: {}", template_path);
 
             if template_path != "" {
                 let mut template_file = File::open(&template_path).unwrap();
@@ -266,22 +251,30 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
 
     // Sub blocks
     if block.blocks.len() > 0 {
-
-        out_file.write("    <div style=\"width: 100%; display: table;\">\n".as_bytes()).unwrap();
-        out_file.write("      <div style=\"display: table-row\">\n".as_bytes()).unwrap();
-
+        println!("block: {}, has {} sub block arrays", block._id, block.blocks.len());
         //Write all sub blocks as new IFRAMEs
-        for subblock in block.blocks
+        for subblocks in block.blocks
         {
-            out_file.write(format!("        <div id=\"{}\" style=\"display: table-cell; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
-            out_file.write(format!("          <iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
-            out_file.write(format!("        </div>\n").as_bytes()).unwrap();
-            write_block(subblock, templates, stylesheets, web_src_path, web_out_path);
+            println!("read one sub block array with lenght: {}", subblocks.len());
+
+            if subblocks.len() > 0 {
+                out_file.write("    <div style=\"width: 100%; display: table;\">\n".as_bytes()).unwrap();
+                out_file.write("      <div style=\"display: table-row\">\n".as_bytes()).unwrap();
+
+                println!("writing table row");
+
+                for subblock in subblocks {
+                    println!("writing subblock: {}", subblock._id);
+
+                    out_file.write(format!("        <div id=\"{}\" style=\"display: table-cell; line-height: 0px; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
+                    out_file.write(format!("          <iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
+                    out_file.write(format!("        </div>\n").as_bytes()).unwrap();
+                    write_block(subblock, templates, stylesheets, web_src_path, web_out_path);
+                }
+                out_file.write(format!("      </div>\n").as_bytes()).unwrap();
+                out_file.write(format!("    </div>\n").as_bytes()).unwrap();
+            }
         }
-
-        out_file.write(format!("      </div>\n").as_bytes()).unwrap();
-        out_file.write(format!("    </div>\n").as_bytes()).unwrap();
-
     }
 
     out_file.write("  </body>\n</html>\n".as_bytes()).unwrap();
