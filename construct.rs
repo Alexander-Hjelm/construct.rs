@@ -130,6 +130,36 @@ fn main() {
 
     // Now we have all the json objects we need (blocks, templates and stylesheets)
 
+    let mut i = 0;
+    let mut j = 0;
+
+    for t1 in &templates {
+        for t2 in &templates {
+            if i!=j && t1._id.eq(&t2._id) {
+                println!("There are two templates with the same _id property. (_id = {})", t2._id);
+                return;
+            }
+            j+=1;
+        }
+        j=0;
+        i+=1;
+    }
+
+    i = 0;
+    j = 0;
+
+    for ss1 in &stylesheets {
+        for ss2 in &stylesheets {
+            if i != j && ss1._id.eq(&ss2._id) {
+                println!("There are two stylesheets with the same _id property. (_id = {})", ss2._id);
+                return;
+            }
+            j+=1;
+        }
+        j=0;
+        i+=1;
+    }
+
     // Create dir
     let res = fs::create_dir(web_out_path.clone());
     if res.is_err() {println!("Out path already exists. Continuing happily...")}
