@@ -22,9 +22,9 @@ struct Block{
     _id: String,
     template_id: String,
     width_percent: u8,
-    stylesheet_override: String,
-    string_maps: Vec<StringMap>,
-    blocks: Vec<Vec<Block>>,
+    stylesheet_id: Option<String>,
+    string_maps: Option<Vec<StringMap>>,
+    blocks: Option<Vec<Vec<Block>>>,
 }
 
 #[derive(Deserialize)]
@@ -36,7 +36,6 @@ struct Stylesheet{
 #[derive(Deserialize)]
 struct Template{
     _id: String,
-    _stylesheet_id: String,
     path: String,
 }
 
@@ -84,7 +83,6 @@ fn main() {
     if c != '/' {
         web_out_path = format!("{}{}", web_out_path, '/');
     }
-
 
     //Read all files in the src path
     let src_paths_result = fs::read_dir(web_src_path.clone());
@@ -157,35 +155,32 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
 
     out_file.write("<!DOCTYPE html>\n<html>\n  <head>\n".as_bytes()).unwrap();
 
-    for t in templates {
-        if t._id.eq(&template_name) {
+    if block.stylesheet_id.is_some() {
+        let stylesheet_id = block.stylesheet_id.unwrap();
 
-            let stylesheet_id;
-            if block.stylesheet_override != "" {
-                stylesheet_id = &block.stylesheet_override;
-            } else {
-                stylesheet_id = &t._stylesheet_id;
-            }
+        for stylesheet in stylesheets {
 
-            for stylesheet in stylesheets {
+            if stylesheet._id == stylesheet_id {
+                // Found stylesheet
+                let stylesheet_src_path = format!("{}{}", web_src_path, &stylesheet.path);
+                let stylesheet_out_path = format!("{}{}.css", web_out_path, &stylesheet._id);
 
-                if &stylesheet._id == stylesheet_id {
-                    // Found stylesheet
-                    let stylesheet_src_path = format!("{}{}", web_src_path, &stylesheet.path);
-                    let stylesheet_out_path = format!("{}{}.css", web_out_path, &stylesheet._id);
+                println!("Found stylesheet: {}", stylesheet_src_path);
+                // Copy stylesheet
+                fs::copy(stylesheet_src_path, stylesheet_out_path).unwrap();
 
-                    println!("Found stylesheet: {}", stylesheet_src_path);
-                    // Copy stylesheet
-                    fs::copy(stylesheet_src_path, stylesheet_out_path).unwrap();
-
-                    // Write reference to the stylesheet in head
-                    out_file.write(format!("      {}{}{}", "<link rel=\"stylesheet\" href=\"", stylesheet_id ,".css\" />").as_bytes()).unwrap();
-                }
+                // Write reference to the stylesheet in head
+                out_file.write(format!("      {}{}{}", "<link rel=\"stylesheet\" href=\"", stylesheet_id ,".css\" />").as_bytes()).unwrap();
             }
         }
     }
 
     out_file.write("\n  </head>\n  <body>\n".as_bytes()).unwrap();
+
+    let str_maps = block.string_maps;;
+
+    let mut template_file = Err(std::io::Error::new(std::io::ErrorKind::Other, "No template file found with that id."));;
+    let mut buf = [0];
 
     //Find corresponding template
     for t in templates {
@@ -197,86 +192,96 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
             println!("Found html template: {}", template_path);
 
             if template_path != "" {
-                let mut template_file = File::open(&template_path).unwrap();
-                let mut buf = [0];
+                template_file = File::open(&template_path);
+                break;
+            }
+        }
+    }
 
-                //Write template to file
-                loop {
-                    let res = template_file.read(&mut buf);
-                    if res.is_ok() {
-                        let read_bytes = res.unwrap();
+    let mut sm_some = str_maps.unwrap_or(vec!());
 
-                        if read_bytes == 0 {
-                            break;
+    if template_file.is_ok() {
+        let mut source_file = template_file.unwrap();
+        //Write template to file
+        loop {
+
+            let res = source_file.read(&mut buf);
+            if res.is_ok() {
+                let read_bytes = res.unwrap();
+
+                if read_bytes == 0 {
+                    break;
+                }
+
+                let c = char::from(buf[0]);
+                if c == '#' {
+                    let mut control_str = String::new();
+                    //read {
+                    source_file.read(&mut buf).unwrap();
+                    // read first char
+                    source_file.read(&mut buf).unwrap();
+
+                    // load first char
+                    let mut k = char::from(buf[0]);
+                    while k != '}' {
+                        control_str.push(k);
+                        source_file.read(&mut buf).unwrap();
+                        k = char::from(buf[0]);
+                    }
+                    //read }
+                    source_file.read(&mut buf).unwrap();
+
+                    println!("Read control string: {}", control_str);
+
+                    //Find the corresponding string in the block's map
+                    for str_map in &sm_some {
+                        if str_map._id.eq(&control_str) {
+                            let smac = str_map.contents.clone();
+                            let bytes = smac.into_bytes();
+                            out_file.write_all(&bytes).unwrap();
                         }
-
-                        let c = char::from(buf[0]);
-                        if c == '#' {
-                            let mut control_str = String::new();
-                            //read {
-                            template_file.read(&mut buf).unwrap();
-                            // read first char
-                            template_file.read(&mut buf).unwrap();
-
-                            // load first char
-                            let mut k = char::from(buf[0]);
-                            while k != '}' {
-                                control_str.push(k);
-                                template_file.read(&mut buf).unwrap();
-                                k = char::from(buf[0]);
-                            }
-                            //read }
-                            template_file.read(&mut buf).unwrap();
-
-                            println!("Read control string: {}", control_str);
-
-                            //Find the corresponding string in the block's map
-                            for str_map in &(block.string_maps) {
-                                if str_map._id.eq(&control_str) {
-                                    let smac = str_map.contents.clone();
-                                    let bytes = smac.into_bytes();
-                                    out_file.write_all(&bytes).unwrap();
-                                }
-                            }
-                        }
-
-                        out_file.write(&buf).unwrap();
-                    } else {
-                        break;
                     }
                 }
+                out_file.write(&buf).unwrap();
+            } else {
+                break;
             }
         }
     }
+    //TODO:
+    // else {
+    //    Err();
+    //}
 
     // Sub blocks
-    if block.blocks.len() > 0 {
-        println!("block: {}, has {} sub block arrays", block._id, block.blocks.len());
-        //Write all sub blocks as new IFRAMEs
-        for subblocks in block.blocks
-        {
-            println!("read one sub block array with lenght: {}", subblocks.len());
+    if block.blocks.is_some() {
+        let subblocks2D = block.blocks.unwrap();
+        if subblocks2D.len() > 0 {
+            println!("block: {}, has {} sub block arrays", block._id, subblocks2D.len());
+            //Write all sub blocks as new IFRAMEs
+            for subblocks in subblocks2D {
+                println!("read one sub block array with lenght: {}", subblocks.len());
 
-            if subblocks.len() > 0 {
-                out_file.write("    <div style=\"width: 100%; display: table;\">\n".as_bytes()).unwrap();
-                out_file.write("      <div style=\"display: table-row\">\n".as_bytes()).unwrap();
+                if subblocks.len() > 0 {
+                    out_file.write("    <div style=\"width: 100%; display: table;\">\n".as_bytes()).unwrap();
+                    out_file.write("      <div style=\"display: table-row\">\n".as_bytes()).unwrap();
 
-                println!("writing table row");
+                    println!("writing table row");
 
-                for subblock in subblocks {
-                    println!("writing subblock: {}", subblock._id);
+                    for subblock in subblocks {
+                        println!("writing subblock: {}", subblock._id);
 
-                    out_file.write(format!("        <div id=\"{}\" style=\"display: table-cell; line-height: 0px; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
-                    out_file.write(format!("          <iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
-                    out_file.write(format!("        </div>\n").as_bytes()).unwrap();
-                    write_block(subblock, templates, stylesheets, web_src_path, web_out_path);
+                        out_file.write(format!("        <div id=\"{}\" style=\"display: table-cell; line-height: 0px; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
+                        out_file.write(format!("          <iframe width=\"100%\" height=\"100%\" frameborder=\"0\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
+                        out_file.write(format!("        </div>\n").as_bytes()).unwrap();
+                        write_block(subblock, templates, stylesheets, web_src_path, web_out_path);
+                    }
+                    out_file.write(format!("      </div>\n").as_bytes()).unwrap();
+                    out_file.write(format!("    </div>\n").as_bytes()).unwrap();
                 }
-                out_file.write(format!("      </div>\n").as_bytes()).unwrap();
-                out_file.write(format!("    </div>\n").as_bytes()).unwrap();
             }
         }
     }
-
     out_file.write("  </body>\n</html>\n".as_bytes()).unwrap();
 }
 
