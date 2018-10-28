@@ -4,7 +4,6 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
-//use serde_json::{Value, Error};
 use std::fs;
 use std::str;
 use std::fs::File;
@@ -13,9 +12,6 @@ use std::io::Read;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::env;
-
-//static WEB_SRC_PATH: &'static str = "./web_src/src/";
-//static WEB_OUT_PATH: &'static str = "./web_out/";
 
 #[derive(Deserialize)]
 struct Block{
@@ -89,10 +85,22 @@ fn main() {
     let src_paths: std::fs::ReadDir;
 
     if src_paths_result.is_err() {
-        fs::create_dir(web_src_path.clone()).unwrap();
-        src_paths = fs::read_dir(web_src_path.clone()).unwrap();
+        let create_dir_res = fs::create_dir(web_src_path.clone());
+        if create_dir_res.is_ok() {
+            let read_dir_res = fs::read_dir(web_src_path.clone());
+            if read_dir_res.is_ok() {
+                src_paths = read_dir_res.unwrap();
+            } else {
+                println!("ERROR! Could not read from the directory: {}. Make sure you have access rights", web_src_path);
+                return;
+            }
+        } else {
+            println!("ERROR! The path {} could not be created. Make sure you have access rights or create the directory manually", web_src_path);
+            return;
+        }
         println!("The path {} was not found, created the path!", web_src_path)
     } else {
+        // Read files Ok!
         src_paths = src_paths_result.unwrap();
     }
 
@@ -113,16 +121,32 @@ fn main() {
                 println!("Read tag: {}", tag);
 
                 if tag == "BLOCK" {
-                    let block: Block = read_json_object(&mut file_reader).unwrap();
-                    blocks.push(block);
+                    let block_res = read_json_object(&mut file_reader);
+                    if block_res.is_ok() {
+                        let block: Block = block_res.unwrap();
+                        blocks.push(block);
+                    } else {
+                        println!("Error while reading block: {}", block_res.err().unwrap());
+                    }
                 } else if tag == "TEMPLATE" {
-                    let template: Template = read_json_object(&mut file_reader).unwrap();
-                    templates.push(template);
+                    let template_res = read_json_object(&mut file_reader);
+                    if template_res.is_ok() {
+                        let template: Template = template_res.unwrap();
+                        templates.push(template);
+                    } else {
+                        println!("Error while reading template: {}", template_res.err().unwrap());
+                    }
                 } else if tag == "STYLESHEET" {
-                    let stylesheet: Stylesheet = read_json_object(&mut file_reader).unwrap();
-                    stylesheets.push(stylesheet);
+                    let stylesheet_res = read_json_object(&mut file_reader);
+                    if stylesheet_res.is_ok() {
+                        let stylesheet: Stylesheet = stylesheet_res.unwrap();
+                        stylesheets.push(stylesheet);
+                    } else {
+                        println!("Error while reading stylesheet: {}", stylesheet_res.err().unwrap());
+                    }
                 }
             } else {
+                println!("{}", res.unwrap_err());
                 break;
             }
         }
@@ -130,9 +154,9 @@ fn main() {
 
     // Now we have all the json objects we need (blocks, templates and stylesheets)
 
+    //Duplicate id check on templates
     let mut i = 0;
     let mut j = 0;
-
     for t1 in &templates {
         for t2 in &templates {
             if i!=j && t1._id.eq(&t2._id) {
@@ -145,9 +169,9 @@ fn main() {
         i+=1;
     }
 
+    //Duplicate id check on stylesheets
     i = 0;
     j = 0;
-
     for ss1 in &stylesheets {
         for ss2 in &stylesheets {
             if i != j && ss1._id.eq(&ss2._id) {
@@ -197,7 +221,13 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
 
                 println!("Found stylesheet: {}", stylesheet_src_path);
                 // Copy stylesheet
-                fs::copy(stylesheet_src_path, stylesheet_out_path).unwrap();
+                let copy_res = fs::copy(&stylesheet_src_path, &stylesheet_out_path);
+                if copy_res.is_err() {
+                    println!("Error while copying stylesheet file: {} to path: {}.
+                    Make sure that the file and the target directory exist.", stylesheet_src_path,
+                    stylesheet_out_path);
+                    return;
+                }
 
                 // Write reference to the stylesheet in head
                 out_file.write(format!("      {}{}{}", "<link rel=\"stylesheet\" href=\"", stylesheet_id ,".css\" />").as_bytes()).unwrap();
@@ -228,7 +258,7 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
         }
     }
 
-    let mut sm_some = str_maps.unwrap_or(vec!());
+    let sm_some = str_maps.unwrap_or(vec!());
 
     if template_file.is_ok() {
         let mut source_file = template_file.unwrap();
@@ -278,10 +308,10 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
             }
         }
     }
-    //TODO:
-    // else {
-    //    Err();
-    //}
+    else {
+        println!("ERROR while reading template file. Error message was: {}", template_file.unwrap_err());
+        return;
+    }
 
     // Sub blocks
     if block.blocks.is_some() {
@@ -379,7 +409,7 @@ fn read_control_tag(reader: &mut BufReader<File>) -> Result<String, std::io::Err
         if reader_res.is_ok() {
             read_bytes = reader_res.unwrap();
         } else {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("File reader reached EOF befmre finding a control tag: {}", reader_res.unwrap_err())));
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("File reader reached EOF before finding a control tag: {}", reader_res.unwrap_err())));
         }
 
         if read_bytes == 0 {
