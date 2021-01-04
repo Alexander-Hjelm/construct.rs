@@ -334,7 +334,7 @@ fn write_block(block: Block, templates: &Vec<Template>, stylesheets: &Vec<Styles
                         println!("writing subblock: {}", subblock._id);
 
                         out_file.write(format!("        <div id=\"{}\" style=\"display: table-cell; line-height: 0px; width:{}%\">\n", subblock._id, subblock.width_percent).as_bytes()).unwrap();
-                        out_file.write(format!("          <iframe width=\"100%\" height=\"100%\" frameborder=\"0\" scrolling=\"no\" align=\"top\" onload=\"resizeIframe(this)\" src=\"{}.html\"></iframe>\n", subblock._id).as_bytes()).unwrap();
+                        out_file.write(format!("          <iframe class=\"{}\" width=\"100%\" height=\"100%\" frameborder=\"0\" scrolling=\"no\" align=\"top\" onload=\"resizeIframe(this)\" src=\"{}.html\"></iframe>\n", subblock._id, subblock._id).as_bytes()).unwrap();
                         out_file.write(format!("        </div>\n").as_bytes()).unwrap();
                         write_block(subblock, templates, stylesheets, web_src_path, web_out_path);
                     }
